@@ -198,51 +198,73 @@ document.addEventListener('keydown', (e) => {
 // ==================== CONTACT FORM ====================
 const contactForm = document.getElementById('contactForm');
 const formSuccess = document.getElementById('formSuccess');
+const formError = document.getElementById('formError');
 
-contactForm.addEventListener('submit', (e) => {
-  e.preventDefault();
-  
-  // Get form data
-  const formData = new FormData(contactForm);
-  const name = formData.get('name');
-  const email = formData.get('email');
-  const message = formData.get('message');
-  
-  // Simple validation
-  if (!name || !email || !message) {
-    return;
-  }
-  
-  // Simulate form submission
+if (contactForm) {
   const submitButton = contactForm.querySelector('button[type="submit"]');
-  submitButton.disabled = true;
-  submitButton.textContent = 'Sending...';
-  
-  setTimeout(() => {
-    // Hide form
-    contactForm.style.display = 'none';
-    
-    // Show success message
-    formSuccess.style.display = 'flex';
-    
-    // Reset form
-    contactForm.reset();
-    
-    // Reset button and show form again after 5 seconds
-    setTimeout(() => {
-      formSuccess.style.display = 'none';
-      contactForm.style.display = 'block';
-      submitButton.disabled = false;
-      submitButton.innerHTML = `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="22" y1="2" x2="11" y2="13"></line>
-          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-        </svg>
-        Send Message
-      `;
-    }, 5000);
-  }, 1000);
-});
+  const defaultButtonHTML = submitButton ? submitButton.innerHTML : '';
+
+  const resetButtonState = () => {
+    if (!submitButton) return;
+    submitButton.disabled = false;
+    submitButton.innerHTML = defaultButtonHTML;
+  };
+
+  contactForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    if (formError) {
+      formError.style.display = 'none';
+    }
+
+    const formData = new FormData(contactForm);
+    const name = formData.get('name')?.toString().trim();
+    const email = formData.get('email')?.toString().trim();
+    const message = formData.get('message')?.toString().trim();
+
+    if (!name || !email || !message) {
+      return;
+    }
+
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = 'Sending...';
+    }
+
+    try {
+      const response = await fetch(contactForm.action, {
+        method: contactForm.method || 'POST',
+        headers: {
+          'Accept': 'application/json'
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send');
+      }
+
+      contactForm.reset();
+      contactForm.style.display = 'none';
+      if (formSuccess) {
+        formSuccess.style.display = 'flex';
+      }
+
+      setTimeout(() => {
+        if (formSuccess) {
+          formSuccess.style.display = 'none';
+        }
+        contactForm.style.display = 'block';
+        resetButtonState();
+      }, 5000);
+    } catch (error) {
+      if (formError) {
+        formError.style.display = 'flex';
+      }
+      resetButtonState();
+    }
+  });
+}
 
 // ==================== SCROLL ANIMATIONS ====================
 const observerOptions = {
